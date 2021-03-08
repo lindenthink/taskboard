@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>任务看板</title>
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="bookmark" href="/favicon.ico" />
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <style>
+         :root {
+            --color-bg: #eaeff3;
+            --color-success: #29B311;
+            --color-warning: #FF9900;
+            --color-error: #D9001B;
+            --color-info: #0664F2;
+            --color-link: #2d8fde;
+        }
+        
+        .el-button+.el-button {
+            margin-left: 0;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--color-bg);
+        }
+        
+        #app {
+            min-width: 1000px;
+        }
+        
+        .color-success {
+            color: var(--color-success);
+        }
+        
+        .color-warnging {
+            color: var(--color-warning);
+        }
+        
+        .color-info {
+            color: var(--color-link);
+        }
+        
+        .color-error {
+            color: var(--color-error);
+        }
+        
+        .box-card {
+            min-height: 400px;
+            max-height: 600px;
+            overflow-y: scroll;
+        }
+        
+        .card-header {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .card-content {
+            margin: 10px;
+        }
+        
+        .el-card__header {
+            top: 0;
+            position: sticky;
+            background-color: #fff;
+            z-index: 999;
+        }
+        
+        .task-content {
+            width: 100%;
+            display: inline-block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 10px;
+            color: darkgrey;
+        }
+
+        .log {
+            font-size: 10px;
+            color: darkgrey;
+            height: 100px;
+            overflow-y: scroll;
+        }
+
+        .opt {
+            display: none;
+            float:right;
+        }
+
+        .card-content:hover .opt {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <el-container id="app">
+        <el-header>
+            <el-menu default-active="board" class="el-menu-demo" mode="horizontal" @select="selectMenu">
+                <el-menu-item index="board"><i class="el-icon-data-board"></i>看板</el-menu-item>
+                <el-menu-item index="calendar"><i class="el-icon-time"></i>日历</el-menu-item>
+                <el-menu-item index="settings"><i class="el-icon-setting"></i>设置</el-menu-item>
+                <div style="float: right;margin: 10px 10px 10px 0;">
+                    <el-button-group>
+                        <el-button icon="el-icon-upload2" plain @click="onUpload">上传</el-button>
+                        <el-button icon="el-icon-download" plain @click="onDownload">下载</el-button>
+                        <el-button icon="el-icon-refresh" plain @click="onSync" :loading="syncing">同步</el-button>
+                      </el-button-group>
+                  </div>
+              </el-menu>
+              
+        </el-header>
+
+        <el-main>
+            <el-row :gutter="20">
+                <el-col :span="8">
+                    <el-card class="box-card">
+                        <div slot="header" class="card-header">
+                            <span class="color-info">待处理</span>
+                            <el-tooltip class="item" effect="dark" content="新增待处理任务" placement="top">
+                                <el-button style="float: right; padding: 3px 0; font-size: 20px;" type="text" icon="el-icon-circle-plus-outline" @click="onAdd"></el-button>
+                            </el-tooltip>
+                        </div>
+                        <el-card v-for="task in tasks.todos" :key="task.id" shadow="hover" class="card-content">
+                            <div slot="header">
+                                <span class="color-info">{{task.title}}</span>
+                                <div class="opt">
+                                    <el-button type="primary" icon="el-icon-edit" size="mini" circle @click="onEdit(task)"></el-button>
+                                    <el-popconfirm confirm-button-text='好的' cancel-button-text='取消' icon="el-icon-info" icon-color="red" title="确定删除该任务吗？" @confirm="onDelete(task)">
+                                        <el-button slot="reference" type="danger" icon="el-icon-delete" size="mini" circle></el-button>
+                                    </el-popconfirm>
+                                    <el-button type="success" icon="el-icon-right" size="mini" circle @click="onNext(task)"></el-button>
+                                </div>   
+                            </div>
+                            <span class="task-content">{{task.content}}</span>
+                        </el-card>
+                    </el-card>
+                </el-col>
+                <el-col :span="8">
+                    <el-card class="box-card">
+                        <div slot="header" class="card-header">
+                            <span class="color-warnging">进行中</span>
+                        </div>
+                        <el-card v-for="task in tasks.doings" :key="task.id" shadow="hover" class="card-content">
+                            <div slot="header">
+                                <span class="color-warnging">{{task.title}}</span>
+                                <div class="opt">
+                                    <el-button type="warning" icon="el-icon-back" size="mini" circle @click="onPrev(task)"></el-button>
+                                    <el-button type="primary" icon="el-icon-edit" size="mini" circle @click="onEdit(task)"></el-button>
+                                    <el-popconfirm confirm-button-text='好的' cancel-button-text='不用了' icon="el-icon-info" icon-color="red" title="确定删除该任务吗？" @confirm="onDelete(task)">
+                                        <el-button slot="reference" type="danger" icon="el-icon-delete" size="mini" circle></el-button>
+                                    </el-popconfirm>
+                                    <el-button type="success" icon="el-icon-right" size="mini" circle @click="onNext(task)"></el-button>
+                                </div>   
+                            </div>
+                            <span class="task-content">{{task.content}}</span>
+                        </el-card>
+                </el-col>
+                <el-col :span="8">
+                    <el-card class="box-card">
+                        <div slot="header" class="card-header">
+                            <span class="color-success">已完成</span>
+                        </div>
+                        <el-card v-for="task in tasks.dones" :key="task.id" shadow="hover" class="card-content">
+                            <div slot="header">
+                                <span class="color-success">{{task.title}}</span>
+                                <div class="opt">
+                                    <el-button type="warning" icon="el-icon-back" size="mini" circle @click="onPrev(task)"></el-button>
+                                    <el-button type="primary" icon="el-icon-edit" size="mini" circle @click="onEdit(task)"></el-button>
+                                    <el-popconfirm confirm-button-text='好的' cancel-button-text='不用了' icon="el-icon-info" icon-color="red" title="确定删除该任务吗？" @confirm="onDelete(task)">
+                                        <el-button slot="reference" type="danger" icon="el-icon-delete" size="mini" circle></el-button>
+                                    </el-popconfirm>
+                                </div>   
+                            </div>
+                            <span class="task-content">{{task.content}}</span>
+                        </el-card>
+                    </el-card>
+                </el-col>
+            </el-row>
+
+        </el-main>
+
+        <el-footer>
+            <el-card class="log">
+                2021-03-07 11:12:22 - "任务1"由待处理变为处理中<br>
+                2021-04-08 12:13:11 - "任务2"被删除<br> 
+                2021-03-07 11:12:22 - "任务1"由待处理变为处理中<br>
+                2021-03-07 11:12:22 - "任务1"由待处理变为处理中<br>
+                2021-03-07 11:12:22 - "任务1"由待处理变为处理中<br>
+                2021-03-07 11:12:22 - "任务1"由待处理变为处理中<br>
+            </el-card>
+        </el-footer>
+        <el-dialog :title="!form.id ? '新增任务':'调整任务'" :visible.sync="dialogVisible" width="45%">
+            <el-form :model="form" label-width="120px">
+                <el-form-item label="任务主题" required>
+                    <el-input v-model="form.title" placeholder="请输入主题" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="时间类型">
+                    <el-radio-group v-model="form.type">
+                        <el-radio label="normal">普通</el-radio>
+                        <el-radio label="schedule">计划</el-radio>
+                        <!-- <el-radio :label="timer">计时</el-radio> -->
+                      </el-radio-group>
+                </el-form-item>
+                <!-- <el-form-item label="开始时间">
+                    <el-date-picker v-model="form.beginTime" type="datetime">
+                    </el-date-picker>
+                </el-form-item> -->
+                <div v-if="form.type === 'schedule'" required>
+                    <el-form-item label="时间范围">
+                        <el-date-picker v-model="form.dateRange" type="datetimerange" range-separator="至" start-placeholder="开始时间" end-placeholder="结束时间">
+                        </el-date-picker>
+                    </el-form-item>
+                </div>
+                <el-form-item label="任务内容">
+                    <el-input type="textarea" v-model="form.content" placeholder="请输入内容"
+                    maxlength="150"
+                    show-word-limit rows="5"></el-input>
+                </el-form-item>
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="dialogVisible=false">取 消</el-button>
+                <el-button type="primary" @click="onSave">确 定</el-button>
+            </div>
+        </el-dialog>
+
+    </el-container>
+</body>
+<script src="https://unpkg.com/vue/dist/vue.js"></script>
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script>
+    // 说明：
+    // 1. 所有任务保存在浏览器本地， 如非必要操作请不要清空缓存， 后续会提供导入导出功能
+    // 2. 任务分为普通任务和计划任务， 计划任务到期后会自动转入“ 进行中” 状态并在临近结束前给出提示
+    // 3. 自动清理机制会自动清除40天以上的“ 已完成” 任务
+
+    // 任务属性：id, type, status, title, content, created, modified, beginTime, endTime
+
+    const STORAGE_KEY = 'tasks'
+
+    // 主题
+    const THEME_DAY = 'day'
+    const THEME_NIGHT = 'night'
+
+    // 任务状态
+    const STATUS_TODO = 'todo'
+    const STATUS_DOING = 'doing'
+    const STATUS_DONE = 'done'
+
+    // 任务类型
+    const TYPE_NORMAL = 'normal' // 普通
+    const TYPE_SCHEDULE = 'schedule' // 计划
+    // const TYPE_TIMER = 'timer' // 计时
+
+    const LOG_QUEUE = [] // 日志队列
+
+    new Vue({
+        el: '#app',
+        data: function() {
+            return {
+                form: {},
+                dialogVisible: false,
+                tasks: load(),
+                syncing: false
+            }
+        },
+        methods: {
+            selectMenu: function(key, keyPath) {
+                console.log(key, keyPath)
+                // todo
+            },
+            onAdd: function() {
+                this.form = {
+                    type: TYPE_NORMAL
+                };
+                this.dialogVisible = true;
+            },
+            onSave: function() {
+                let curTask = Object.assign({}, this.form);
+                let now = new Date();
+                curTask.modifiedAt = now;
+                if (curTask.id === undefined) {
+                    curTask.id = this.tasks.todos.length;
+                    curTask.status = STATUS_TODO;
+                    curTask.createdAt = now;
+                    this.tasks.todos.push(curTask);
+                } else {
+                    if (curTask.status === STATUS_TODO) {
+                        this.tasks.todos[curTask.id] = curTask;
+                    } else if (curTask.status === STATUS_DOING) {
+                        this.tasks.doings[curTask.id] = curTask;
+                    } else {
+                        this.tasks.dones[curTask.id] = curTask;
+                    }
+                }
+                persist(this.tasks);
+                this.dialogVisible = false
+                this.$message({
+                    message: '保存成功',
+                    type: 'success'
+                });
+                this.form = {
+                    type: TYPE_NORMAL
+                };
+            },
+            onEdit: function(task) {
+                this.form = Object.assign({}, task);
+                this.dialogVisible = true;
+            },
+            onDelete: function(task) {
+                if (task.status === STATUS_TODO) {
+                    this.tasks.todos.remove(task.id);
+                } else if (task.status === STATUS_DOING) {
+                    this.tasks.doings.remove(task.id);
+                } else {
+                    this.tasks.dones.remove(task.id);
+                }
+                persist(this.tasks);
+                this.$message({
+                    message: '删除成功',
+                    type: 'success'
+                });
+            },
+            onNext: function(task) {
+                if (task.status === STATUS_TODO) {
+                    this.tasks.todos.remove(task.id);
+                    task.id = this.tasks.doings.length;
+                    task.status = STATUS_DOING;
+                    this.tasks.doings.push(task);
+                } else {
+                    this.tasks.doings.remove(task.id);
+                    task.id = this.tasks.dones.length;
+                    task.status = STATUS_DONE;
+                    this.tasks.dones.push(task);
+                }
+                persist(this.tasks);
+            },
+            onPrev: function(task) {
+                if (task.status === STATUS_DOING) {
+                    this.tasks.doings.remove(task.id);
+                    task.id = this.tasks.todos.length;
+                    task.status = STATUS_TODO;
+                    this.tasks.todos.push(task);
+                } else {
+                    this.tasks.dones.remove(task.id);
+                    task.id = this.tasks.doings.length;
+                    task.status = STATUS_DOING;
+                    this.tasks.doings.push(task);
+                }
+                persist(this.tasks);
+            },
+            onHover: function(task) {
+                // todo
+            },
+            onDownload: function() {
+                // todo
+            },
+            onUpload: function() {
+                // todo
+            },
+            onSync: function() {
+                this.syncing = true;
+                // todo
+                setTimeout(() => {
+                    this.syncing = false;
+                }, 3000);
+            }
+        },
+    })
+
+    Array.prototype.remove = function(index) {
+        this.splice(index, 1);
+        for (let i = 0; i < this.length; i++) {
+            this[i].id = i;
+        }
+    }
+
+     // TODO 定时任务  提醒、刷新日志、同步
+    setInterval(() => {
+        let taskes = load()
+        taskes.todos.map((todo) => {
+            notify('你有新的任务需要处理啦', `${todo.title}：${todo.content}`)
+        })
+    }, 60000);
+
+    function persist(obj) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(obj))
+    }
+
+    function load() {
+        let pTasks = localStorage.getItem(STORAGE_KEY)
+        console.log(pTasks)
+        // TODO 需要初始化定时器，定时将待执行任务转到执行中并给出提醒，同时在任务临近结束5分钟前给出提示
+        return !pTasks ? {
+            todos: [],
+            doings: [],
+            dones: [],
+            settings: {
+                theme: THEME_DAY, // 模式(day/night)
+                isSync: false, // 是否同步
+                syncInterval: 60, // 同步间隔(秒)
+                isShowLog: true, // 是否显示日志
+                isDailyReport: false, // 生成日报
+                isMonthlyReport: false, // 生成月报
+            }
+        } : JSON.parse(pTasks)
+    }
+
+    function notify(title, msg, iconUrl, targetUrl) {
+        Notification.requestPermission(function() {
+            if (Notification.permission === 'granted') {
+                // 用户点击了允许
+                let n = new Notification(title, {
+                    body: msg,
+                    icon: iconUrl
+                })
+
+                setTimeout(() => {
+                    n.close();
+                }, 5000)
+
+                if (targetUrl) {
+                    n.onclick = function(e) {
+                        window.open(targetUrl)
+                        console.log(1, e);
+                    }
+                }
+
+                n.onerror = function(e) {
+                    console.log(2, e);
+                }
+
+                n.onshow = function(e) {
+                    console.log(3, e);
+                }
+
+                n.onclose = function(e) {
+                    console.log(4, e);
+                }
+
+            } else if (Notification.permission === 'denied') {
+                // 用户点击了拒绝
+            } else {
+                // 用户没有做决定
+            }
+        })
+    }
+</script>
+
+</html>
