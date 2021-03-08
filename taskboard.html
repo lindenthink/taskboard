@@ -63,7 +63,7 @@
         .card-content {
             margin: 10px;
         }
-        
+
         .box-card>.el-card__header {
             top: 0;
             position: sticky;
@@ -121,7 +121,7 @@
                     <el-button-group>
                         <el-button icon="el-icon-upload2" plain @click="onUpload">上传</el-button>
                         <el-button icon="el-icon-download" plain @click="onDownload">下载</el-button>
-                        <el-button icon="el-icon-refresh" plain @click="onSync" :loading="syncing">同步</el-button>
+                        <el-button icon="el-icon-refresh" type="success" plain @click="onSync" :loading="syncing">同步</el-button>
                     </el-button-group>
                 </div>
             </el-menu>
@@ -248,7 +248,7 @@
     // 2. 任务分为普通任务和计划任务， 计划任务到期后会自动转入“ 进行中” 状态并在临近结束前给出提示
     // 3. 自动清理机制会自动清除40天以上的“ 已完成” 任务
 
-    // 任务属性：id, type, status, title, content, created, modified, beginTime, endTime
+    // 任务属性：id, type, status, title, content, created, modified, beginTime, endTime, hasNotified
 
     const STORAGE_KEY = 'tasks'
 
@@ -275,7 +275,7 @@
                 form: {},
                 dialogVisible: false,
                 tasks: load(),
-                syncing: false
+                syncing: false,
             }
         },
         methods: {
@@ -394,19 +394,34 @@
         let taskes = load()
         taskes.todos.map((todo) => {
             if (todo.type === TYPE_SCHEDULE) {
-                notify('你有新的任务需要处理', `${todo.title}：${todo.content}`)
+                let beginTime = todo.dateRange[0]
+                if (new Date(beginTime) <= new Date() && !todo.hasNotified) {
+                    notify('你有新的任务需要处理', `${todo.title}：${todo.content}`)
+                    todo.hasNotified = true
+                    persist(taskes)
+                }
             }
-        })
-    }, 60000);
+        });
+    }, 1000);
 
+    setInterval(() => {
+        // todo 刷新日志
+    }, 500);
+
+    setInterval(() => {
+        // todo 同步
+    }, 3*1000);
+
+    setInterval(() => {
+        // todo 刷新日志
+    }, 60*60*1000);
+    
     function persist(obj) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(obj))
     }
 
     function load() {
         let pTasks = localStorage.getItem(STORAGE_KEY)
-        console.log(pTasks)
-            // TODO 需要初始化定时器，定时将待执行任务转到执行中并给出提醒，同时在任务临近结束5分钟前给出提示
         return !pTasks ? {
             todos: [],
             doings: [],
@@ -422,18 +437,18 @@
         } : JSON.parse(pTasks)
     }
 
-    function notify(title, msg, iconUrl, targetUrl) {
+    function notify(title, msg, targetUrl) {
         Notification.requestPermission(function() {
             if (Notification.permission === 'granted') {
                 // 用户点击了允许
                 let n = new Notification(title, {
                     body: msg,
-                    icon: iconUrl
+                    icon: 'favicon.ico'
                 })
 
-                setTimeout(() => {
-                    n.close();
-                }, 5000)
+                // setTimeout(() => {
+                //     n.close();
+                // }, 5000)
 
                 if (targetUrl) {
                     n.onclick = function(e) {
