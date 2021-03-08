@@ -64,11 +64,11 @@
             margin: 10px;
         }
         
-        .el-card__header {
+        .box-card>.el-card__header {
             top: 0;
             position: sticky;
             background-color: #fff;
-            z-index: 999;
+            z-index: 888;
         }
         
         .task-content {
@@ -79,21 +79,33 @@
             font-size: 10px;
             color: darkgrey;
         }
-
+        
         .log {
             font-size: 10px;
             color: darkgrey;
             height: 100px;
             overflow-y: scroll;
         }
-
+        
+        .log .el-card__body {
+            padding: 0;
+        }
+        
         .opt {
             display: none;
-            float:right;
+            float: right;
         }
-
+        
         .card-content:hover .opt {
             display: block;
+        }
+        
+        .copyright {
+            margin-top: 1em;
+            text-align: center;
+            color: darkgrey;
+            font-weight: 500;
+            font-size: 14px;
         }
     </style>
 </head>
@@ -110,10 +122,10 @@
                         <el-button icon="el-icon-upload2" plain @click="onUpload">上传</el-button>
                         <el-button icon="el-icon-download" plain @click="onDownload">下载</el-button>
                         <el-button icon="el-icon-refresh" plain @click="onSync" :loading="syncing">同步</el-button>
-                      </el-button-group>
-                  </div>
-              </el-menu>
-              
+                    </el-button-group>
+                </div>
+            </el-menu>
+
         </el-header>
 
         <el-main>
@@ -135,7 +147,7 @@
                                         <el-button slot="reference" type="danger" icon="el-icon-delete" size="mini" circle></el-button>
                                     </el-popconfirm>
                                     <el-button type="success" icon="el-icon-right" size="mini" circle @click="onNext(task)"></el-button>
-                                </div>   
+                                </div>
                             </div>
                             <span class="task-content">{{task.content}}</span>
                         </el-card>
@@ -156,7 +168,7 @@
                                         <el-button slot="reference" type="danger" icon="el-icon-delete" size="mini" circle></el-button>
                                     </el-popconfirm>
                                     <el-button type="success" icon="el-icon-right" size="mini" circle @click="onNext(task)"></el-button>
-                                </div>   
+                                </div>
                             </div>
                             <span class="task-content">{{task.content}}</span>
                         </el-card>
@@ -175,7 +187,7 @@
                                     <el-popconfirm confirm-button-text='好的' cancel-button-text='不用了' icon="el-icon-info" icon-color="red" title="确定删除该任务吗？" @confirm="onDelete(task)">
                                         <el-button slot="reference" type="danger" icon="el-icon-delete" size="mini" circle></el-button>
                                     </el-popconfirm>
-                                </div>   
+                                </div>
                             </div>
                             <span class="task-content">{{task.content}}</span>
                         </el-card>
@@ -187,13 +199,12 @@
 
         <el-footer>
             <el-card class="log">
-                2021-03-07 11:12:22 - "任务1"由待处理变为处理中<br>
-                2021-04-08 12:13:11 - "任务2"被删除<br> 
-                2021-03-07 11:12:22 - "任务1"由待处理变为处理中<br>
-                2021-03-07 11:12:22 - "任务1"由待处理变为处理中<br>
-                2021-03-07 11:12:22 - "任务1"由待处理变为处理中<br>
-                2021-03-07 11:12:22 - "任务1"由待处理变为处理中<br>
+                2021-03-07 11:12:22 - "任务1"由待处理变为处理中<br> 2021-04-08 12:13:11 - "任务2"被删除<br> 2021-03-07 11:12:22 - "任务1"由待处理变为处理中<br> 2021-03-07 11:12:22 - "任务1"由待处理变为处理中<br> 2021-03-07 11:12:22 - "任务1"由待处理变为处理中<br> 2021-03-07 11:12:22 - "任务1"由待处理变为处理中<br>
             </el-card>
+            <div class="copyright">
+                版权所有@
+                <el-link type="info" href="http://47.104.243.84/">菩提思</el-link> 2021-2021
+            </div>
         </el-footer>
         <el-dialog :title="!form.id ? '新增任务':'调整任务'" :visible.sync="dialogVisible" width="45%">
             <el-form :model="form" label-width="120px">
@@ -205,7 +216,7 @@
                         <el-radio label="normal">普通</el-radio>
                         <el-radio label="schedule">计划</el-radio>
                         <!-- <el-radio :label="timer">计时</el-radio> -->
-                      </el-radio-group>
+                    </el-radio-group>
                 </el-form-item>
                 <!-- <el-form-item label="开始时间">
                     <el-date-picker v-model="form.beginTime" type="datetime">
@@ -218,9 +229,7 @@
                     </el-form-item>
                 </div>
                 <el-form-item label="任务内容">
-                    <el-input type="textarea" v-model="form.content" placeholder="请输入内容"
-                    maxlength="150"
-                    show-word-limit rows="5"></el-input>
+                    <el-input type="textarea" v-model="form.content" placeholder="请输入内容" maxlength="150" show-word-limit rows="5"></el-input>
                 </el-form-item>
             </el-form>
             <div slot="footer" class="dialog-footer">
@@ -255,7 +264,7 @@
     // 任务类型
     const TYPE_NORMAL = 'normal' // 普通
     const TYPE_SCHEDULE = 'schedule' // 计划
-    // const TYPE_TIMER = 'timer' // 计时
+        // const TYPE_TIMER = 'timer' // 计时
 
     const LOG_QUEUE = [] // 日志队列
 
@@ -272,7 +281,7 @@
         methods: {
             selectMenu: function(key, keyPath) {
                 console.log(key, keyPath)
-                // todo
+                    // todo
             },
             onAdd: function() {
                 this.form = {
@@ -380,11 +389,13 @@
         }
     }
 
-     // TODO 定时任务  提醒、刷新日志、同步
+    // TODO 定时任务  提醒、刷新日志、同步
     setInterval(() => {
         let taskes = load()
         taskes.todos.map((todo) => {
-            notify('你有新的任务需要处理啦', `${todo.title}：${todo.content}`)
+            if (todo.type === TYPE_SCHEDULE) {
+                notify('你有新的任务需要处理', `${todo.title}：${todo.content}`)
+            }
         })
     }, 60000);
 
@@ -395,7 +406,7 @@
     function load() {
         let pTasks = localStorage.getItem(STORAGE_KEY)
         console.log(pTasks)
-        // TODO 需要初始化定时器，定时将待执行任务转到执行中并给出提醒，同时在任务临近结束5分钟前给出提示
+            // TODO 需要初始化定时器，定时将待执行任务转到执行中并给出提醒，同时在任务临近结束5分钟前给出提示
         return !pTasks ? {
             todos: [],
             doings: [],
