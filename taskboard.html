@@ -119,8 +119,8 @@
                 <el-menu-item index="settings"><i class="el-icon-setting"></i>设置</el-menu-item>
                 <div style="float: right;margin: 10px 10px 10px 0;">
                     <el-button-group>
-                        <el-button icon="el-icon-upload2" plain @click="onUpload">上传</el-button>
-                        <el-button icon="el-icon-download" plain @click="onDownload">下载</el-button>
+                        <el-button icon="el-icon-upload2" plain @click="onImport">导入</el-button>
+                        <el-button icon="el-icon-download" plain @click="onExport">导出</el-button>
                         <el-button icon="el-icon-refresh" type="success" plain @click="onSync" :loading="syncing">同步</el-button>
                     </el-button-group>
                 </div>
@@ -238,6 +238,15 @@
             </div>
         </el-dialog>
 
+        <el-dialog :title="数据导入" :visible.sync="importVisible" width="30%">
+            <el-upload
+            ref="upload"
+            :on-remove="handleRemove"
+            :auto-upload="false">
+            <el-button slot="trigger" size="small" type="primary">选取文件</el-button>
+            <div slot="tip" class="el-upload__tip">只能导入data文件</div>
+          </el-upload>
+        </el-dialog>
     </el-container>
 </body>
 <script src="https://unpkg.com/vue/dist/vue.js"></script>
@@ -274,6 +283,7 @@
             return {
                 form: {},
                 dialogVisible: false,
+                importVisible: false,
                 tasks: load(),
                 syncing: false,
             }
@@ -363,13 +373,21 @@
                 }
                 persist(this.tasks);
             },
-            onHover: function(task) {
-                // todo
+            onExport: function() {
+                let eleLink = document.createElement('a');
+                eleLink.download = 'taskboard.data';
+                eleLink.style.display = 'none';
+                let data = localStorage.getItem(STORAGE_KEY);
+                let blob = new Blob([data]);
+                eleLink.href = URL.createObjectURL(blob);
+                document.body.appendChild(eleLink);
+                eleLink.click();
+                document.body.removeChild(eleLink);
             },
-            onDownload: function() {
-                // todo
-            },
-            onUpload: function() {
+            onImport: function() {
+                // this.importVisible = true
+                var Shell = new ActiveXObject( "Shell.Application" );
+  var Folder = Shell.BrowseForFolder(0,Message,0x0040,0x11);
                 // todo
             },
             onSync: function() {
@@ -389,7 +407,6 @@
         }
     }
 
-    // TODO 定时任务  提醒、刷新日志、同步
     setInterval(() => {
         let taskes = load()
         taskes.todos.map((todo) => {
@@ -413,7 +430,7 @@
     }, 3*1000);
 
     setInterval(() => {
-        // todo 刷新日志
+        // todo 清理过期任务
     }, 60*60*1000);
     
     function persist(obj) {
